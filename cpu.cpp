@@ -4,7 +4,10 @@
 
 CPU::CPU(emu& gbEmu) :
 	gbEmu(gbEmu),
-	registers(new WordRegister[6])
+	afReg(a,f),
+	bcReg(b,c),
+	deReg(d,e),
+	hlReg(h,l)
 {
 	init();
 }
@@ -19,10 +22,6 @@ void CPU::init()
 	cycles = 0;
 	programCounter = 0x100;
 	stackPointer = 0;
-	registers[AF].setWord(0);
-	registers[BC].setWord(0);
-	registers[DE].setWord(0);
-	registers[HL].setWord(0);
 	IR = 0;
 	IE = 0;
 	currentOpcode = 0;
@@ -45,7 +44,8 @@ void CPU::executeCurrentOpcode()
 		opcodeNOP();
 		break;
 	case 0x01:
-		//opcodeLD_BC_A();
+		//LD BC N16
+		LD_R16_N16(bcReg);
 		break;
 	case 0x02:
 		//opcodeINC_BC();
@@ -55,7 +55,7 @@ void CPU::executeCurrentOpcode()
 		break;
 	case 0x06:
 		//LD B N8
-		LD_R8_N8(registers[BC].getHighByteRegister());
+		LD_R8_N8(bcReg.getHighByteRegister());
 		break;	
 	case 0x08:
 		programCounter += 3;
@@ -71,14 +71,27 @@ void CPU::executeCurrentOpcode()
 		break;
 	case 0x0E:
 		//LD C N8
-		LD_R8_N8(registers[BC].getLowByteRegister());
+		LD_R8_N8(bcReg.getLowByteRegister());
+		break;
+	case 0x11:
+		//LD DE N16
+		LD_R16_N16(deReg);
 		break;
 	case 0x21:
 		//LD HL N16
-		LD_R16_N16(registers[HL]);
+		LD_R16_N16(hlReg);
+		break;
+	case 0x22:
+		//LD [HL+] A
+		LD_R16_INC_A(hlReg);
+		break;
+	case 0x31:
+		//LD HL N16
+		//LD_R16_N16(registers[SP]);
 		break;
 	case 0x32:
-		opcodeLD_HLD_A();
+		//LD [HL-] A
+		LD_R16_DEC_A(hlReg);
 		break;
 	case 0x66:
 		programCounter++;
@@ -97,11 +110,11 @@ void CPU::executeCurrentOpcode()
 		break;
 	case 0xAF:
 		//XOR A
-		XOR_R8(registers[AF].getHighByteRegister());
+		XOR_R8(afReg.getHighByteRegister());
 		break;
 	case 0xC3:
 		opcodeJP_A16();
-		
+
 		break;
 	case 0xCC:
 		programCounter += 3;
@@ -122,7 +135,7 @@ void CPU::executeCurrentOpcode()
 	}
 }
 
-void CPU::cycleCPU(int numCycles) 
+void CPU::cycleCPU(int numCycles)
 {
 	cycles += numCycles;
 }
@@ -142,6 +155,18 @@ u8 CPU::readByteFromPC()
 	return value;
 }
 
+u8 CPU::readByteFromAddress(u16 address)
+{
+	return gbEmu.addressBus.busRead(address);
+}
+
+void CPU::writeByteAtAddress(u16 address, u8 data)
+{
+	gbEmu.addressBus.busWrite(address, data);
+}
+
+
+
 void CPU::opcodeNOP()
 {
 	cycleCPU(1);
@@ -155,13 +180,103 @@ void CPU::opcodeJP_A16()
 }
 
 
-
-
-
 void CPU::opcodeLD_HLD_A()
 {
-	gbEmu.addressBus.busWrite(registers[HL].getWord(), registers[AF].getHighByteRegister().getRegisterValue());
-	++registers[HL];
+	gbEmu.addressBus.busWrite(hlReg.getWord(), afReg.getHighByteRegister().getRegisterValue());
+	++hlReg;
+}
+
+void CPU::INC_R8(ByteRegister& reg)
+{
+	u8 oldValue = reg.getRegisterValue();
+	reg.setRegisterValue(oldValue + 1);
+
+	if (reg.getRegisterValue() == 0)
+	{
+		f.setZeroFlag(true);
+	}
+
+	if ((1 + (oldValue & 0xf) & 0x10) == 0x10)
+	{
+		f.setHalfCarryFlag(true);
+	}
+
+	f.setSubstractionFlag(false);
+	cycleCPU(1);
+}
+
+void CPU::INC_R16(WordRegister& reg)
+{
+	++reg;
+	cycleCPU(2);
+}
+
+void CPU::INC_R16_INDIRECT(WordRegister& reg)
+{
+	u8 oldValue = readByteFromAddress(reg.getWord());
+	u8 result = oldValue + 1;
+	
+	writeByteAtAddress(reg.getWord(), result);
+
+	if (result == 0)
+	{
+		f.setZeroFlag(true);
+	}
+
+	if ((1 + (oldValue & 0xf) & 0x10) == 0x10)
+	{
+		f.setHalfCarryFlag(true);
+	}
+
+	f.setSubstractionFlag(false);
+	cycleCPU(3);
+
+}
+
+void CPU::DEC_R8(ByteRegister& reg)
+{
+	u8 oldValue = reg.getRegisterValue();
+	reg.setRegisterValue(oldValue - 1);
+
+	if (reg.getRegisterValue() == 0)
+	{
+		f.setZeroFlag(true);
+	}
+
+	if ((1 + (oldValue & 0xf) & 0x10) == 0x10)
+	{
+		f.setHalfCarryFlag(true);
+	}
+
+	f.setSubstractionFlag(true);
+	cycleCPU(1);
+}
+
+void CPU::DEC_R16(WordRegister& reg)
+{
+	--reg;
+	cycleCPU(2);
+}
+
+void CPU::DEC_R16_INDIRECT(WordRegister& reg)
+{
+	u8 oldValue = readByteFromAddress(reg.getWord());
+	u8 result = oldValue - 1;
+
+	writeByteAtAddress(reg.getWord(), result);
+
+	if (result == 0)
+	{
+		f.setZeroFlag(true);
+	}
+
+	if ((1 + (oldValue & 0xf) & 0x10) == 0x10)
+	{
+		f.setHalfCarryFlag(true);
+	}
+
+	f.setSubstractionFlag(true);
+	cycleCPU(3);
 }
 
 void CPU::LD_R16_N16(WordRegister& reg)
@@ -182,17 +297,197 @@ void CPU::LD_R8_N8(ByteRegister& reg)
 	cycleCPU(2);
 }
 
+void CPU::LD_R16_R8(WordRegister& reg, ByteRegister& reg2)
+{
+	gbEmu.addressBus.busWrite(reg.getWord(), reg2.getRegisterValue());
+	cycleCPU(2);
+}
+
+void CPU::LD_R16_INC_A(WordRegister& reg)
+{
+	gbEmu.addressBus.busWrite(reg.getWord(), afReg.getHighByteRegister().getRegisterValue());
+	++reg;
+	cycleCPU(2);
+}
+
+void CPU::LD_R16_DEC_A(WordRegister& reg)
+{
+	gbEmu.addressBus.busWrite(reg.getWord(), afReg.getHighByteRegister().getRegisterValue());
+	--reg;
+	cycleCPU(2);
+}
+
+void CPU::LD_R16_N8(WordRegister& reg)
+{
+	gbEmu.addressBus.busWrite(reg.getWord(), readByteFromPC());
+	cycleCPU(3);
+}
+
+void CPU::LD_R8_R16(ByteRegister& reg1, WordRegister& reg2)
+{
+	reg1.setRegisterValue(readByteFromAddress(reg2.getWord()));
+	cycleCPU(2);
+}
+
+void CPU::LD_R8_R16_INC(ByteRegister& reg1, WordRegister& reg2)
+{
+	reg1.setRegisterValue(readByteFromAddress(reg2.getWord()));
+	++reg2;
+	cycleCPU(2);
+}
+
+void CPU::LD_R8_R16_DEC(ByteRegister& reg1, WordRegister& reg2)
+{
+	reg1.setRegisterValue(readByteFromAddress(reg2.getWord()));
+	--reg2;
+	cycleCPU(2);
+}
+
+
+void CPU::ADD_R8(ByteRegister& reg)
+{
+	u8 oldValue = a.getRegisterValue();
+	a.setRegisterValue(oldValue + reg.getRegisterValue());
+
+	if (a.getRegisterValue() == 0)
+	{
+		f.setZeroFlag(true);
+	}
+
+	if (((reg.getRegisterValue() & 0xf) + (oldValue & 0xf) & 0x10) == 0x10)
+	{
+		f.setHalfCarryFlag(true);
+	}
+
+	if (((reg.getRegisterValue() & 0xff) + (oldValue & 0xff)) > 0xFF)
+	{
+		f.setCarryFlag(true);
+	}
+
+	f.setSubstractionFlag(false);
+
+	cycleCPU(1);
+}
+
+void CPU::ADD_N8()
+{
+	u8 oldValue = a.getRegisterValue();
+	u8 valueAdded = readByteFromPC();
+	a.setRegisterValue(oldValue - valueAdded);
+
+	if (a.getRegisterValue() == 0)
+	{
+		f.setZeroFlag(true);
+	}
+
+	if (((valueAdded & 0xf) + (oldValue & 0xf) & 0x10) == 0x10)
+	{
+		f.setHalfCarryFlag(true);
+	}
+
+	if (((valueAdded & 0xff) + (oldValue & 0xff)) > 0xFF)
+	{
+		f.setCarryFlag(true);
+	}
+
+	f.setSubstractionFlag(false);
+
+	cycleCPU(1);
+}
+
+void CPU::SUB_R8(ByteRegister& reg)
+{
+	u8 oldValue = a.getRegisterValue();
+	a.setRegisterValue(oldValue - reg.getRegisterValue());
+
+	if (a.getRegisterValue() == 0)
+	{
+		f.setZeroFlag(true);
+	}
+
+	if (((reg.getRegisterValue() & 0xf) + (oldValue & 0xf) & 0x10) == 0x10)
+	{
+		f.setHalfCarryFlag(true);
+	}
+
+	if (((reg.getRegisterValue() & 0xff) + (oldValue & 0xff) ) > 0xFF)
+	{
+		f.setCarryFlag(true);
+	}
+
+	f.setSubstractionFlag(true);
+
+	cycleCPU(1);
+	
+}
+
+void CPU::SUB_N8()
+{
+	u8 oldValue = a.getRegisterValue();
+	u8 valueSubstracted = readByteFromPC();
+	a.setRegisterValue(oldValue - valueSubstracted);
+
+	if (a.getRegisterValue() == 0)
+	{
+		f.setZeroFlag(true);
+	}
+
+	if (((valueSubstracted & 0xf) + (oldValue & 0xf) & 0x10) == 0x10)
+	{
+		f.setHalfCarryFlag(true);
+	}
+
+	if (((valueSubstracted & 0xff) + (oldValue & 0xff)) > 0xFF)
+	{
+		f.setCarryFlag(true);
+	}
+
+	f.setSubstractionFlag(true);
+
+	cycleCPU(1);
+}
+
+void CPU::AND_R8(ByteRegister& reg)
+{
+	a.setRegisterValue(a.getRegisterValue() & reg.getRegisterValue());
+	if (a.getRegisterValue() == 0)
+	{
+		f.setZeroFlag(true);
+	}
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(true);
+	f.setCarryFlag(false);
+
+	cycleCPU(1);
+}
+
+void CPU::OR_R8(ByteRegister& reg)
+{
+	a.setRegisterValue(a.getRegisterValue() | reg.getRegisterValue());
+	if (a.getRegisterValue() == 0)
+	{
+		f.setZeroFlag(true);
+	}
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	f.setCarryFlag(false);
+
+	cycleCPU(1);
+}
 
 void CPU::XOR_R8(ByteRegister& reg)
 {
-	u8 valueA = registers[AF].getHighByteRegister().getRegisterValue();
+	u8 valueA = afReg.getHighByteRegister().getRegisterValue();
 	u8 valueR = reg.getRegisterValue();
 
-	registers[AF].getHighByteRegister().setRegisterValue(valueA ^ valueR);
+	afReg.getHighByteRegister().setRegisterValue(valueA ^ valueR);
 
-	if (registers[AF].getHighByteRegister().getRegisterValue() == 0)
+	if (afReg.getHighByteRegister().getRegisterValue() == 0)
 	{
-		registers[AF].getLowByteRegister().setRegisterValue(0x8); //set z flag to 1 and n,h,c flags to 0
+		f.setZeroFlag(true); 
+		f.setCarryFlag(false);
+		f.setSubstractionFlag(false);
+		f.setZeroFlag(false);
 	}
 	cycleCPU(1);
 }

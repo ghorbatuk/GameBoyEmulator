@@ -1,6 +1,11 @@
 #include "Registers.h"
 
-u8 ByteRegister::getRegisterValue() 
+ByteRegister::ByteRegister()
+{
+	value = 0;
+}
+
+u8 ByteRegister::getRegisterValue()
 {
 	return value;
 }
@@ -10,13 +15,11 @@ void ByteRegister::setRegisterValue(u8 value)
 }
 
 
-
-WordRegister::WordRegister()
+WordRegister::WordRegister(ByteRegister& low, ByteRegister& high):
+	lowByte(low),
+	highByte(high)
 {
-	lowByte.setRegisterValue(0);
-	highByte.setRegisterValue(0);
 }
-
 
 ByteRegister& WordRegister::getLowByteRegister()
 {
@@ -34,21 +37,18 @@ u16 WordRegister::getWord()
 
 void WordRegister::setHighByteValue(u8 value)
 {
-	//registerData = (registerData & 0x00FF) | ((u16)value << 8);
 	highByte.setRegisterValue(value);
 }
 
 void WordRegister::setLowByteValue(u8 value)
 {
 	lowByte.setRegisterValue(value);
-	//registerData = (registerData & 0xFF00) | (u16)value;
 }
 
 void  WordRegister::setWord(u16 value)
 {
 	lowByte.setRegisterValue((u8) value);
 	highByte.setRegisterValue((u8)(value >> 8));
-	//registerData = value;
 }
 
 WordRegister& WordRegister::operator++()
@@ -56,4 +56,75 @@ WordRegister& WordRegister::operator++()
 	u16 wordValue = getWord();
 	setWord(++wordValue);
 	return *this;
+}
+
+WordRegister& WordRegister::operator--()
+{
+	u16 wordValue = getWord();
+	setWord(--wordValue);
+	return *this;
+}
+
+void FlagsRegister::setCarryFlag(bool flagValue)
+{
+	if (flagValue)
+	{
+		value = value | ((u8)1 << c);
+	}
+	else {
+		value = value & ~((u8)1 << c);
+	}
+}
+
+void FlagsRegister::setHalfCarryFlag(bool flagValue)
+{
+	if (flagValue)
+	{
+		value = value | ((u8)1 << h);
+	}
+	else {
+		value = value & ~((u8)1 << h);
+	}
+}
+
+void FlagsRegister::setSubstractionFlag(bool flagValue)
+{
+	if (flagValue)
+	{
+		value = value | ((u8)1 << n);
+	}
+	else {
+		value = value & ~((u8)1 << n);
+	}
+}
+
+void FlagsRegister::setZeroFlag(bool flagValue)
+{
+	if (flagValue)
+	{
+		value = value | ((u8)1 << z);
+	}
+	else {
+		value = value & ~((u8)1 << z);
+	}
+}
+
+bool FlagsRegister::getCarryFlag()
+{
+	return (value >> c) & (u8)1;
+}
+
+bool FlagsRegister::getHalfCarryFlag()
+{
+	return (value >> h) & (u8)1;;
+}
+
+bool FlagsRegister::getSubstractionFlag()
+{
+	return (value >> n) & (u8)1;;
+}
+
+bool FlagsRegister::getZeroFlag()
+{
+	return (value >> z) & (u8)1;;
 }
