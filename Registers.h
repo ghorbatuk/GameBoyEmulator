@@ -7,29 +7,41 @@ public:
 	ByteRegister();
 	ByteRegister(const ByteRegister& reg) = delete;
 	auto operator=(const ByteRegister&)->ByteRegister & = delete;
-	u8 getRegisterValue();
+	u8 getRegisterValue() const;
 	void setRegisterValue(u8 value);
 protected:
 	u8 value;
 };
 
-
-
-class WordRegister
+class WordRegister 
 {
 public:
-	
-	WordRegister(ByteRegister&, ByteRegister&);
+	WordRegister();
 	WordRegister(const WordRegister& reg) = delete;
 	auto operator=(const WordRegister&)->WordRegister & = delete;
+	virtual u16 getWord() const;
+	virtual void setWord(u16 value);
+	virtual WordRegister& operator++();
+	virtual WordRegister& operator--();
+	WordRegister& operator+=(const u16 reg);
+private:
+	u16 value;
+};
+
+class ByteRegisterPair : public WordRegister
+{
+public:
+	ByteRegisterPair(ByteRegister&, ByteRegister&);
+	ByteRegisterPair(const ByteRegisterPair& reg) = delete;
+	auto operator=(const ByteRegisterPair&)->ByteRegisterPair & = delete;
 	//u8 getHighByteValue();
 	//u8 getLowByteValue();
-	u16 getWord();
+	u16 getWord() const override;
 	void setHighByteValue(u8 value);
 	void setLowByteValue(u8 value);
-	void setWord(u16 value);
-	WordRegister& operator++();
-	WordRegister& operator--();
+	void setWord(u16 value) override;
+	ByteRegisterPair& operator++() override;
+	ByteRegisterPair& operator--() override;
 	ByteRegister& getLowByteRegister();
 	ByteRegister& getHighByteRegister();
 private:

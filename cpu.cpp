@@ -20,8 +20,8 @@ bool CPU::isHalted()
 void CPU::init()
 {
 	cycles = 0;
-	programCounter = 0x100;
-	stackPointer = 0;
+	PC.setWord(0x100);
+	SP.setWord(0x0);
 	IR = 0;
 	IE = 0;
 	currentOpcode = 0;
@@ -29,13 +29,13 @@ void CPU::init()
 
 void CPU::fetchOpcode()
 {
-	currentOpcode = gbEmu.addressBus.busRead(programCounter);
-	programCounter++;
+	currentOpcode = gbEmu.addressBus.busRead(PC.getWord());
+	++PC;
 }
 
 void CPU::executeCurrentOpcode()
 {
-	printf("PC: %X", programCounter);
+	printf("PC: %X", PC.getWord());
 	printf(" OPCODE: %X\n", currentOpcode);
 
 	switch(currentOpcode)
@@ -51,23 +51,23 @@ void CPU::executeCurrentOpcode()
 		//opcodeINC_BC();
 		break;
 	case 0x03:
-		programCounter++;
+		++PC;
 		break;
 	case 0x06:
 		//LD B N8
 		LD_R8_N8(bcReg.getHighByteRegister());
 		break;	
 	case 0x08:
-		programCounter += 3;
+		PC += 3;
 		break;
 	case 0x0B:
-		programCounter++;
+		++PC;
 		break;
 	case 0x0C:
-		programCounter++;
+		++PC;
 		break;
 	case 0x0D:
-		programCounter++;
+		++PC;
 		break;
 	case 0x0E:
 		//LD C N8
@@ -85,6 +85,10 @@ void CPU::executeCurrentOpcode()
 		//LD [HL+] A
 		LD_R16_INC_A(hlReg);
 		break;
+	case 0x2B:
+		INC_R16(hlReg);
+		break;
+
 	case 0x31:
 		//LD HL N16
 		//LD_R16_N16(registers[SP]);
@@ -93,20 +97,23 @@ void CPU::executeCurrentOpcode()
 		//LD [HL-] A
 		LD_R16_DEC_A(hlReg);
 		break;
+	case 0x3B:
+		INC_R16(SP);
+		break;
 	case 0x66:
-		programCounter++;
+		++PC;
 		break;
 	case 0x73:
-		programCounter++;
+		++PC;
 		break;
 	case 0x83:
-		programCounter++;
+		++PC;
 		break;
 	case 0x88:
-		programCounter++;
+		++PC;
 		break;
 	case 0x89:
-		programCounter++;
+		++PC;
 		break;
 	case 0xAF:
 		//XOR A
@@ -117,16 +124,16 @@ void CPU::executeCurrentOpcode()
 
 		break;
 	case 0xCC:
-		programCounter += 3;
+		PC += 3;
 		break;
 	case 0xCE:
-		programCounter += 2;
+		PC += 2;
 		break;
 	case 0xDC:
-		programCounter += 2;
+		PC += 2;
 		break;
 	case 0xDD:
-		programCounter += 2;
+		PC += 2;
 		break;
 	default:
 		printf("UNKNOWN OPCODE: %X\n", currentOpcode);
@@ -142,16 +149,16 @@ void CPU::cycleCPU(int numCycles)
 
 u16 CPU::readWordFromPC()
 {
-	u16 lo = gbEmu.addressBus.busRead(programCounter);
-	u16 hi = gbEmu.addressBus.busRead(programCounter + 1);
-	programCounter += 2;
+	u16 lo = gbEmu.addressBus.busRead(PC.getWord());
+	u16 hi = gbEmu.addressBus.busRead(PC.getWord() + 1);
+	PC += 2;
 	return lo | (hi << 8);
 }
 
 u8 CPU::readByteFromPC()
 {
-	u8 value = gbEmu.addressBus.busRead(programCounter);
-	programCounter++;
+	u8 value = gbEmu.addressBus.busRead(PC.getWord());
+	++PC;
 	return value;
 }
 
@@ -175,7 +182,7 @@ void CPU::opcodeNOP()
 
 void CPU::opcodeJP_A16()
 {
-	programCounter = readWordFromPC();
+	PC.setWord(readWordFromPC());
 	cycleCPU(1);
 }
 
@@ -224,7 +231,7 @@ void CPU::INC_R16(WordRegister& reg)
 	cycleCPU(2);
 }
 
-void CPU::INC_R16_INDIRECT(WordRegister& reg)
+void CPU::INC_R16_INDIRECT(ByteRegisterPair& reg)
 {
 	writeByteAtAddress(reg.getWord(), INC_8BIT(readByteFromAddress(reg.getWord())));
 	cycleCPU(3);
@@ -268,7 +275,7 @@ void CPU::DEC_R16(WordRegister& reg)
 	cycleCPU(2);
 }
 
-void CPU::DEC_R16_INDIRECT(WordRegister& reg)
+void CPU::DEC_R16_INDIRECT(ByteRegisterPair& reg)
 {
 	writeByteAtAddress(reg.getWord(), DEC_8BIT(readByteFromAddress(reg.getWord())));
 	cycleCPU(3);
@@ -292,46 +299,46 @@ void CPU::LD_R8_N8(ByteRegister& reg)
 	cycleCPU(2);
 }
 
-void CPU::LD_R16_R8(WordRegister& reg, ByteRegister& reg2)
+void CPU::LD_R16_R8(ByteRegisterPair& reg, ByteRegister& reg2)
 {
 	gbEmu.addressBus.busWrite(reg.getWord(), reg2.getRegisterValue());
 	cycleCPU(2);
 }
 
-void CPU::LD_R16_INC_A(WordRegister& reg)
+void CPU::LD_R16_INC_A(ByteRegisterPair& reg)
 {
 	gbEmu.addressBus.busWrite(reg.getWord(), afReg.getHighByteRegister().getRegisterValue());
 	++reg;
 	cycleCPU(2);
 }
 
-void CPU::LD_R16_DEC_A(WordRegister& reg)
+void CPU::LD_R16_DEC_A(ByteRegisterPair& reg)
 {
 	gbEmu.addressBus.busWrite(reg.getWord(), afReg.getHighByteRegister().getRegisterValue());
 	--reg;
 	cycleCPU(2);
 }
 
-void CPU::LD_R16_N8(WordRegister& reg)
+void CPU::LD_R16_N8(ByteRegisterPair& reg)
 {
 	gbEmu.addressBus.busWrite(reg.getWord(), readByteFromPC());
 	cycleCPU(3);
 }
 
-void CPU::LD_R8_R16(ByteRegister& reg1, WordRegister& reg2)
+void CPU::LD_R8_R16(ByteRegister& reg1, ByteRegisterPair& reg2)
 {
 	reg1.setRegisterValue(readByteFromAddress(reg2.getWord()));
 	cycleCPU(2);
 }
 
-void CPU::LD_R8_R16_INC(ByteRegister& reg1, WordRegister& reg2)
+void CPU::LD_R8_R16_INC(ByteRegister& reg1, ByteRegisterPair& reg2)
 {
 	reg1.setRegisterValue(readByteFromAddress(reg2.getWord()));
 	++reg2;
 	cycleCPU(2);
 }
 
-void CPU::LD_R8_R16_DEC(ByteRegister& reg1, WordRegister& reg2)
+void CPU::LD_R8_R16_DEC(ByteRegister& reg1, ByteRegisterPair& reg2)
 {
 	reg1.setRegisterValue(readByteFromAddress(reg2.getWord()));
 	--reg2;
@@ -604,5 +611,46 @@ void CPU::XOR_HL()
 {
 	a.setRegisterValue(XOR_8BIT(a.getRegisterValue(), readByteFromAddress(hlReg.getWord())));
 	cycleCPU(2);
+}
+
+void CPU::JR_CC_E(bool condition)
+{
+	char e = (char)readByteFromPC();
+	if (condition)
+	{
+		PC.setWord(PC.getWord() + e);
+		cycleCPU(1);
+	}
+	cycleCPU(3);
+}
+
+void CPU::JR_E()
+{
+	char e = (char)readByteFromPC();
+	PC.setWord(PC.getWord() + e);
+	cycleCPU(3);
+}
+
+void CPU::JP_CC_NN(bool condition)
+{
+	u16 address = readWordFromPC();
+	if (condition)
+	{
+		PC.setWord(address);
+		cycleCPU(1);
+	}
+	cycleCPU(3);
+}
+
+void CPU::JP_HL()
+{
+	PC.setWord(hlReg.getWord());
+	cycleCPU(1);
+}
+
+void CPU::RST(RSTCodes rstCode)
+{
+	PC.setWord(rstCode);
+	cycleCPU(4);
 }
 

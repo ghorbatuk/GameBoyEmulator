@@ -5,7 +5,7 @@ ByteRegister::ByteRegister()
 	value = 0;
 }
 
-u8 ByteRegister::getRegisterValue()
+u8 ByteRegister::getRegisterValue() const
 {
 	return value;
 }
@@ -15,50 +15,50 @@ void ByteRegister::setRegisterValue(u8 value)
 }
 
 
-WordRegister::WordRegister(ByteRegister& low, ByteRegister& high):
+ByteRegisterPair::ByteRegisterPair(ByteRegister& low, ByteRegister& high):
 	lowByte(low),
 	highByte(high)
 {
 }
 
-ByteRegister& WordRegister::getLowByteRegister()
+ByteRegister& ByteRegisterPair::getLowByteRegister()
 {
 	return lowByte;
 }
-ByteRegister& WordRegister::getHighByteRegister()
+ByteRegister& ByteRegisterPair::getHighByteRegister()
 {
 	return highByte;
 }
 
-u16 WordRegister::getWord()
+u16 ByteRegisterPair::getWord() const
 {
 	return (u16)lowByte.getRegisterValue() | (u16)(highByte.getRegisterValue() << 8);
 }
 
-void WordRegister::setHighByteValue(u8 value)
+void ByteRegisterPair::setHighByteValue(u8 value)
 {
 	highByte.setRegisterValue(value);
 }
 
-void WordRegister::setLowByteValue(u8 value)
+void ByteRegisterPair::setLowByteValue(u8 value)
 {
 	lowByte.setRegisterValue(value);
 }
 
-void  WordRegister::setWord(u16 value)
+void  ByteRegisterPair::setWord(u16 value)
 {
 	lowByte.setRegisterValue((u8) value);
 	highByte.setRegisterValue((u8)(value >> 8));
 }
 
-WordRegister& WordRegister::operator++()
+ByteRegisterPair& ByteRegisterPair::operator++()
 {
 	u16 wordValue = getWord();
 	setWord(++wordValue);
 	return *this;
 }
 
-WordRegister& WordRegister::operator--()
+ByteRegisterPair& ByteRegisterPair::operator--()
 {
 	u16 wordValue = getWord();
 	setWord(--wordValue);
@@ -127,4 +127,37 @@ bool FlagsRegister::getSubstractionFlag()
 bool FlagsRegister::getZeroFlag()
 {
 	return (value >> z) & (u8)1;;
+}
+
+WordRegister::WordRegister()
+{
+	value = 0;
+}
+
+u16 WordRegister::getWord() const
+{
+	return value;
+}
+
+void WordRegister::setWord(u16 value)
+{
+	this->value = value;
+}
+
+WordRegister& WordRegister::operator++()
+{
+	value++;
+	return *this;
+}
+
+WordRegister& WordRegister::operator--()
+{
+	value--;
+	return *this;
+}
+
+WordRegister& WordRegister::operator+=(const u16 val)
+{
+	value += val;
+	return *this;
 }

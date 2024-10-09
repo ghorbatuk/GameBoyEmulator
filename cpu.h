@@ -2,6 +2,10 @@
 #include "Common.h"
 #include "Registers.h";
 #include <memory>
+
+
+
+
 class emu;
 class CPU
 {
@@ -15,19 +19,29 @@ public:
 
 	void cycleCPU(int numCycles);
 private:
+	enum RSTCodes {
+		RST1 = 0x00,
+		RST2 = 0x08,
+		RST3 = 0x10,
+		RST4 = 0x18,
+		RST5 = 0x20,
+		RST6 = 0x28,
+		RST7 = 0x30,
+		RST8 = 0x38
+	};
+
 	emu& gbEmu;
 	unsigned long long cycles;
-	unsigned int programCounter;
-	u16 stackPointer;
-	ByteRegister a, b, c, d, e,  h, l;
+	WordRegister PC;
+	WordRegister SP;
+	ByteRegister a, b, c, d, e, h, l;
 	FlagsRegister f;
-	//std::unique_ptr<WordRegister[]> registers;
-	WordRegister afReg;
-	WordRegister bcReg;
-	WordRegister deReg;
-	WordRegister hlReg;
+	ByteRegisterPair afReg;
+	ByteRegisterPair bcReg;
+	ByteRegisterPair deReg;
+	ByteRegisterPair hlReg;
 	u8 IR;
-	u8 IE; 
+	u8 IE;
 	u8 currentOpcode;
 
 	u16 readWordFromPC();
@@ -43,22 +57,22 @@ private:
 	u8 INC_8BIT(u8 value);
 	void INC_R8(ByteRegister& reg);
 	void INC_R16(WordRegister& reg);
-	void INC_R16_INDIRECT(WordRegister& reg);
+	void INC_R16_INDIRECT(ByteRegisterPair& reg);
 	u8 DEC_8BIT(u8 value);
 	void DEC_R8(ByteRegister& reg);
 	void DEC_R16(WordRegister& reg);
-	void DEC_R16_INDIRECT(WordRegister& reg);
+	void DEC_R16_INDIRECT(ByteRegisterPair& reg);
 
 	void LD_R16_N16(WordRegister& reg);
 	void LD_R8_R8(ByteRegister& reg1, ByteRegister& reg2);
 	void LD_R8_N8(ByteRegister& reg);
-	void LD_R16_R8(WordRegister& reg, ByteRegister& reg2);
-	void LD_R16_INC_A(WordRegister& reg);
-	void LD_R16_DEC_A(WordRegister& reg);
-	void LD_R16_N8(WordRegister& reg);
-	void LD_R8_R16(ByteRegister& reg1, WordRegister& reg2);
-	void LD_R8_R16_INC(ByteRegister& reg1, WordRegister& reg2);
-	void LD_R8_R16_DEC(ByteRegister& reg1, WordRegister& reg2);
+	void LD_R16_R8(ByteRegisterPair& reg, ByteRegister& reg2);
+	void LD_R16_INC_A(ByteRegisterPair& reg);
+	void LD_R16_DEC_A(ByteRegisterPair& reg);
+	void LD_R16_N8(ByteRegisterPair& reg);
+	void LD_R8_R16(ByteRegister& reg1, ByteRegisterPair& reg2);
+	void LD_R8_R16_INC(ByteRegister& reg1, ByteRegisterPair& reg2);
+	void LD_R8_R16_DEC(ByteRegister& reg1, ByteRegisterPair& reg2);
 	//void LD_R16_Addr_R8(WordRegister& reg1, ByteRegister& reg2);
 	//void LD_R16_Addr_R8(WordRegister& reg1, ByteRegister& reg2);
 	//void LD_R8_R16_Addr(WordRegister& reg1, ByteRegister& byte1);
@@ -98,5 +112,11 @@ private:
 	void XOR_R8(ByteRegister& reg);
 	void XOR_N8();
 	void XOR_HL();
-};
 
+	void JR_CC_E(bool condition);
+	void JR_E();
+	void JP_CC_NN(bool condition);
+	void JP_HL();
+
+	void RST(RSTCodes rstCode);
+};
