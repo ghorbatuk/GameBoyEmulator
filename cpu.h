@@ -40,9 +40,11 @@ private:
 
 	void opcodeLD_HLD_A();
 
+	u8 INC_8BIT(u8 value);
 	void INC_R8(ByteRegister& reg);
 	void INC_R16(WordRegister& reg);
 	void INC_R16_INDIRECT(WordRegister& reg);
+	u8 DEC_8BIT(u8 value);
 	void DEC_R8(ByteRegister& reg);
 	void DEC_R16(WordRegister& reg);
 	void DEC_R16_INDIRECT(WordRegister& reg);
@@ -63,18 +65,38 @@ private:
 	u8 ADD_8BIT(u8 oper1, u8 oper2);
 	void ADD_R8(ByteRegister& reg);
 	void ADD_N8();
+	void ADD_HL();
+
+	void ADC_R8(ByteRegister& reg);
+	void ADC_N8();
+	void ADC_HL();
 
 	u8 SUB_8BIT(u8 oper1, u8 oper2);
 	void SUB_R8(ByteRegister& reg);
 	void SUB_N8();
+	void SUB_HL();
+
+	void SBC_R8(ByteRegister& reg);
+	void SBC_N8();
+	void SBC_HL();
+
+	void CP_R8(ByteRegister& reg);
+	void CP_N8();
+	void CP_HL();
 
 	u8 AND_8BIT(u8 oper1, u8 oper2);
 	void AND_R8(ByteRegister& reg);
+	void AND_N8();
+	void AND_HL();
 
 	u8 OR_8BIT(u8 oper1, u8 oper2);
 	void OR_R8(ByteRegister& reg);
+	void OR_N8();
+	void OR_HL();
 
 	u8 XOR_8BIT(u8 oper1, u8 oper2);
 	void XOR_R8(ByteRegister& reg);
+	void XOR_N8();
+	void XOR_HL();
 };
 
