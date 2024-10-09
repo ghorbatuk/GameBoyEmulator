@@ -60,15 +60,21 @@ private:
 	//void LD_R16_Addr_R8(WordRegister& reg1, ByteRegister& reg2);
 	//void LD_R16_Addr_R8(WordRegister& reg1, ByteRegister& reg2);
 	//void LD_R8_R16_Addr(WordRegister& reg1, ByteRegister& byte1);
+	u8 ADD_8BIT(u8 oper1, u8 oper2);
 	void ADD_R8(ByteRegister& reg);
 	void ADD_N8();
 
+	u8 SUB_8BIT(u8 oper1, u8 oper2);
 	void SUB_R8(ByteRegister& reg);
 	void SUB_N8();
 
+	u8 AND_8BIT(u8 oper1, u8 oper2);
 	void AND_R8(ByteRegister& reg);
+
+	u8 OR_8BIT(u8 oper1, u8 oper2);
 	void OR_R8(ByteRegister& reg);
 
+	u8 XOR_8BIT(u8 oper1, u8 oper2);
 	void XOR_R8(ByteRegister& reg);
 };
 

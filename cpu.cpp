@@ -344,113 +344,83 @@ void CPU::LD_R8_R16_DEC(ByteRegister& reg1, WordRegister& reg2)
 }
 
 
-void CPU::ADD_R8(ByteRegister& reg)
+u8 CPU::ADD_8BIT(u8 oper1, u8 oper2)
 {
-	u8 oldValue = a.getRegisterValue();
-	a.setRegisterValue(oldValue + reg.getRegisterValue());
+	u8 result = oper1 + oper2;
 
-	if (a.getRegisterValue() == 0)
+	if (result == 0)
 	{
 		f.setZeroFlag(true);
 	}
 
-	if (((reg.getRegisterValue() & 0xf) + (oldValue & 0xf) & 0x10) == 0x10)
+	if (((oper2 & 0xf) + (oper1 & 0xf) & 0x10) == 0x10)
 	{
 		f.setHalfCarryFlag(true);
 	}
 
-	if (((reg.getRegisterValue() & 0xff) + (oldValue & 0xff)) > 0xFF)
+	if (((oper2 & 0xff) + (oper1 & 0xff)) > 0xFF)
 	{
 		f.setCarryFlag(true);
 	}
 
 	f.setSubstractionFlag(false);
 
+	return result;
+}
+
+void CPU::ADD_R8(ByteRegister& reg)
+{
+	a.setRegisterValue(ADD_8BIT(a.getRegisterValue(), reg.getRegisterValue()));
 	cycleCPU(1);
 }
 
 void CPU::ADD_N8()
 {
-	u8 oldValue = a.getRegisterValue();
-	u8 valueAdded = readByteFromPC();
-	a.setRegisterValue(oldValue - valueAdded);
-
-	if (a.getRegisterValue() == 0)
-	{
-		f.setZeroFlag(true);
-	}
-
-	if (((valueAdded & 0xf) + (oldValue & 0xf) & 0x10) == 0x10)
-	{
-		f.setHalfCarryFlag(true);
-	}
-
-	if (((valueAdded & 0xff) + (oldValue & 0xff)) > 0xFF)
-	{
-		f.setCarryFlag(true);
-	}
-
-	f.setSubstractionFlag(false);
-
+	a.setRegisterValue(ADD_8BIT(a.getRegisterValue(), readByteFromPC()));
 	cycleCPU(1);
 }
 
-void CPU::SUB_R8(ByteRegister& reg)
+u8 CPU::SUB_8BIT(u8 oper1, u8 oper2)
 {
-	u8 oldValue = a.getRegisterValue();
-	a.setRegisterValue(oldValue - reg.getRegisterValue());
-
-	if (a.getRegisterValue() == 0)
+	u8 result = oper1 - oper2;
+	
+	if (result == 0)
 	{
 		f.setZeroFlag(true);
 	}
 
-	if (((reg.getRegisterValue() & 0xf) + (oldValue & 0xf) & 0x10) == 0x10)
+	if (((oper2 & 0xf) + (oper1 & 0xf) & 0x10) == 0x10)
 	{
 		f.setHalfCarryFlag(true);
 	}
 
-	if (((reg.getRegisterValue() & 0xff) + (oldValue & 0xff) ) > 0xFF)
+	if (((oper2 & 0xff) + (oper1 & 0xff)) > 0xFF)
 	{
 		f.setCarryFlag(true);
 	}
 
 	f.setSubstractionFlag(true);
 
+	return result;
+}
+
+void CPU::SUB_R8(ByteRegister& reg)
+{	
+	a.setRegisterValue(SUB_8BIT(a.getRegisterValue(), reg.getRegisterValue()));
 	cycleCPU(1);
 	
 }
 
 void CPU::SUB_N8()
 {
-	u8 oldValue = a.getRegisterValue();
-	u8 valueSubstracted = readByteFromPC();
-	a.setRegisterValue(oldValue - valueSubstracted);
-
-	if (a.getRegisterValue() == 0)
-	{
-		f.setZeroFlag(true);
-	}
-
-	if (((valueSubstracted & 0xf) + (oldValue & 0xf) & 0x10) == 0x10)
-	{
-		f.setHalfCarryFlag(true);
-	}
-
-	if (((valueSubstracted & 0xff) + (oldValue & 0xff)) > 0xFF)
-	{
-		f.setCarryFlag(true);
-	}
-
-	f.setSubstractionFlag(true);
-
+	a.setRegisterValue(SUB_8BIT(a.getRegisterValue(), readByteFromPC()));
 	cycleCPU(1);
 }
 
-void CPU::AND_R8(ByteRegister& reg)
+u8 CPU::AND_8BIT(u8 oper1, u8 oper2)
 {
-	a.setRegisterValue(a.getRegisterValue() & reg.getRegisterValue());
-	if (a.getRegisterValue() == 0)
+	u8 result = oper1 & oper2;
+	if (result == 0)
 	{
 		f.setZeroFlag(true);
 	}
@@ -458,37 +428,53 @@ void CPU::AND_R8(ByteRegister& reg)
 	f.setHalfCarryFlag(true);
 	f.setCarryFlag(false);
 
+	return result;
+}
+
+void CPU::AND_R8(ByteRegister& reg)
+{
+	a.setRegisterValue(AND_8BIT(a.getRegisterValue(), reg.getRegisterValue()));
+
 	cycleCPU(1);
 }
 
-void CPU::OR_R8(ByteRegister& reg)
+u8 CPU::OR_8BIT(u8 oper1, u8 oper2)
 {
-	a.setRegisterValue(a.getRegisterValue() | reg.getRegisterValue());
-	if (a.getRegisterValue() == 0)
+	u8 result = oper1 | oper2;
+	if (result == 0)
 	{
 		f.setZeroFlag(true);
 	}
 	f.setSubstractionFlag(false);
 	f.setHalfCarryFlag(false);
 	f.setCarryFlag(false);
+	return result;
+}
 
+void CPU::OR_R8(ByteRegister& reg)
+{
+	a.setRegisterValue(OR_8BIT(a.getRegisterValue(), reg.getRegisterValue()));
 	cycleCPU(1);
+}
+
+u8 CPU::XOR_8BIT(u8 oper1, u8 oper2)
+{
+	u8 result = oper1 ^ oper2;
+
+	if (result == 0)
+	{
+		f.setZeroFlag(true);
+	}
+	f.setCarryFlag(false);
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+
+	return result;
 }
 
 void CPU::XOR_R8(ByteRegister& reg)
 {
-	u8 valueA = afReg.getHighByteRegister().getRegisterValue();
-	u8 valueR = reg.getRegisterValue();
-
-	afReg.getHighByteRegister().setRegisterValue(valueA ^ valueR);
-
-	if (afReg.getHighByteRegister().getRegisterValue() == 0)
-	{
-		f.setZeroFlag(true); 
-		f.setCarryFlag(false);
-		f.setSubstractionFlag(false);
-		f.setZeroFlag(false);
-	}
+	a.setRegisterValue(XOR_8BIT(a.getRegisterValue(), reg.getRegisterValue()));
 	cycleCPU(1);
 }
 
