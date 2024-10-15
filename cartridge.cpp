@@ -6,17 +6,34 @@
 #include <stdio.h>
 #include <stdlib.h> 
 #include <conio.h>
+#include <fstream>
+
+#include<iterator>
 
 Cartridge::Cartridge() {
-    romData = 0;
+    
     romFileSize = 0;
     
     romHeader = { 0 }; 
 }
 
+Cartridge::~Cartridge()
+{
+    printf("Destructor called\n");
+}
+
+Cartridge::Cartridge(const Cartridge& other) {
+    printf("copy constructor called\n");
+};
+
+Cartridge& Cartridge::operator=(const Cartridge& other) {
+    printf("copy assignment operator called\n");
+    return *this;
+};
+
 bool Cartridge::loadCartridge(char* romName)
 {
-    FILE* file = fopen(romName,"rb");
+   /* FILE* file = fopen(romName, "rb");
 
     if (!file) 
     {
@@ -28,6 +45,7 @@ bool Cartridge::loadCartridge(char* romName)
 
     rewind(file);
 
+    
     romData = (unsigned char*) malloc(romFileSize);
 
     if(romData)
@@ -36,9 +54,25 @@ bool Cartridge::loadCartridge(char* romName)
     }
    
     fclose(file);
+    */
+    std::ifstream inFile(romName, std::ios::binary);
 
+    std::vector<unsigned char> data = std::vector<unsigned char>(
+        (std::istreambuf_iterator<char>(inFile)),
+        (std::istreambuf_iterator<char>()));
+    inFile.close();
+    unsigned char romHeaderArray[80] = { 0 };
 
-    romHeader = (RomHeader*) (romData + 0x100);
+    for (int i = 0; i < data.size() ; i++)
+    {
+        romData.push_back(data.at(i));
+    }
+    for (int i = 0; i < 80; i++)
+    {
+        romHeaderArray[i] = romData[i + 0x100];
+
+    }
+    romHeader = (RomHeader*) romHeaderArray;
     //romHeader->title[15] = 0;
 
     printf("ROM: %s loaded successfully\n", romName);
@@ -94,5 +128,10 @@ const char* Cartridge::getCartType(int code)
 
 unsigned char Cartridge::readRom(unsigned short address)
 {
+    int i = 0;
+    if (romData.size() == 0)
+    {
+        printf("Cartridge not loaded!\n");
+    }
     return romData[address];
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <vector>
 
 static const std::map<int, const char*> cartTypes{
 	{0x00, "ROM ONLY"},
@@ -272,13 +273,16 @@ class Cartridge
 
 public:
 	Cartridge();
+	Cartridge(const Cartridge& other);
+	~Cartridge();
+	Cartridge& operator=(const Cartridge& other);
 	bool loadCartridge(char* romName);
 	const char* getOldLicenseeCode(int code);
 	const char* getNewLicenseeCode(int code);
 	const char* getCartType(int code);
 	unsigned char readRom(unsigned short address);
 private:
-	unsigned char *romData;
+	std::vector<unsigned char> romData;
 	unsigned int romFileSize;
 	RomHeader* romHeader;
 };

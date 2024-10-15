@@ -1,9 +1,10 @@
 #include "emu.h"
 #include <iostream>
 
-emu::emu():
+emu::emu() :
     cpu(*this),
-    addressBus(*this)
+    addressBus(*this),
+    cart()
 {
 
 }

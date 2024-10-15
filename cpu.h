@@ -42,9 +42,11 @@ private:
 	ByteRegisterPair hlReg;
 	u8 IR;
 	u8 IE;
+	bool IME;
 	u8 currentOpcode;
 
 	u16 readWordFromPC();
+	u16 readWordFromSP();
 	u8 readByteFromPC();
 	u8 readByteFromAddress(u16 address);
 	void writeByteAtAddress(u16 address, u8 data);
@@ -63,16 +65,34 @@ private:
 	void DEC_R16(WordRegister& reg);
 	void DEC_R16_INDIRECT(ByteRegisterPair& reg);
 
+	void DAA();
+	void SCF();
+	void CPL();
+	void CCF();
+
 	void LD_R16_N16(WordRegister& reg);
 	void LD_R8_R8(ByteRegister& reg1, ByteRegister& reg2);
 	void LD_R8_N8(ByteRegister& reg);
-	void LD_R16_R8(ByteRegisterPair& reg, ByteRegister& reg2);
+	void LD_A16_R8(ByteRegisterPair& reg, ByteRegister& reg2);
 	void LD_R16_INC_A(ByteRegisterPair& reg);
 	void LD_R16_DEC_A(ByteRegisterPair& reg);
 	void LD_R16_N8(ByteRegisterPair& reg);
 	void LD_R8_R16(ByteRegister& reg1, ByteRegisterPair& reg2);
 	void LD_R8_R16_INC(ByteRegister& reg1, ByteRegisterPair& reg2);
 	void LD_R8_R16_DEC(ByteRegister& reg1, ByteRegisterPair& reg2);
+	void LD_A_A16();
+	void LD_A16_A();
+	void LD_A16_R16(WordRegister&);
+
+	void LDH_A8_A();
+	void LDH_A_A8();
+	void LDH_RC_A();
+	void LDH_A_RC();
+
+	void loadSPFromHL();
+	void loadHLFromAdjustedSP();
+
+
 	//void LD_R16_Addr_R8(WordRegister& reg1, ByteRegister& reg2);
 	//void LD_R16_Addr_R8(WordRegister& reg1, ByteRegister& reg2);
 	//void LD_R8_R16_Addr(WordRegister& reg1, ByteRegister& byte1);
@@ -80,6 +100,10 @@ private:
 	void ADD_R8(ByteRegister& reg);
 	void ADD_N8();
 	void ADD_HL();
+
+	u16 ADD_16BIT(u16 oper1, u16 oper2);
+	void ADD_HL_R16(WordRegister& reg);
+	void ADD_SP_E();
 
 	void ADC_R8(ByteRegister& reg);
 	void ADC_N8();
@@ -103,6 +127,8 @@ private:
 	void AND_N8();
 	void AND_HL();
 
+	
+
 	u8 OR_8BIT(u8 oper1, u8 oper2);
 	void OR_R8(ByteRegister& reg);
 	void OR_N8();
@@ -119,4 +145,21 @@ private:
 	void JP_HL();
 
 	void RST(RSTCodes rstCode);
+
+	void CALL_cond(bool condition);
+	void CALL();
+
+	void RET();
+	void RETI();
+	void RET_Cond(bool condition);
+
+	void PUSH(ByteRegisterPair& reg);
+	void POP(ByteRegisterPair& reg);
+
+	void STOP();
+	void HALT();
+	void DI();
+	void EI();
+
+	void executeCbOpcode();
 };
