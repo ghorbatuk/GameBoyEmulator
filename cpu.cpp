@@ -1,5 +1,6 @@
 #include "cpu.h"
 #include "emu.h"
+#include <assert.h>
 
 
 CPU::CPU(emu& gbEmu) :
@@ -69,7 +70,7 @@ void CPU::executeCurrentOpcode()
 		break;	
 	case 0x07:
 		//RCLA
-		
+		rotateAccumulatorLeftCircular();
 		break;
 	case 0x08:
 		//LD (nn) SP
@@ -101,6 +102,7 @@ void CPU::executeCurrentOpcode()
 		break;
 	case 0x0F:
 		//RRCA
+		rotateAccumulatorRightCircular();
 		break;
 	case 0x10:
 		//STOP
@@ -132,7 +134,7 @@ void CPU::executeCurrentOpcode()
 		break;
 	case 0x17:
 		//RLA
-		
+		rotateAccumulatorLeft();
 		break;
 	case 0x18:
 		//JR e
@@ -164,7 +166,7 @@ void CPU::executeCurrentOpcode()
 		break;
 	case 0x1F:
 		//RRA
-
+		rotateAccumulatorRight();
 		break;
 	case 0x20:
 	{
@@ -1828,7 +1830,1283 @@ void CPU::EI()
 	cycleCPU(1);
 }
 
+void CPU::rotateAccumulatorLeft()
+{
+	u8 value = a.getRegisterValue();
+	u8 highBit = (value >> 7) & (u8)1;
+	u8 oldCarryFlag = (u8)f.getCarryFlag();
+	f.setCarryFlag(highBit);
+	//rotate
+	a.setRegisterValue((value << 1) | oldCarryFlag);
+
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	
+	f.setZeroFlag(false);
+	
+	cycleCPU(1);
+}
+
+void CPU::rotateAccumulatorLeftCircular()
+{
+	//check highest bit
+	u8 value = a.getRegisterValue();
+	u8 highBit = (value >> 7) & (u8)1;
+
+	f.setCarryFlag(highBit);
+
+	//rotate
+	a.setRegisterValue((value << 1) | highBit);
+
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	f.setZeroFlag(false);
+
+	cycleCPU(1);
+}
+
+void CPU::rotateAccumulatorRight()
+{
+	u8 value = a.getRegisterValue();
+	u8 lowBit = value & (u8)1;
+	u8 oldCarryFlag = (u8)f.getCarryFlag();
+	f.setCarryFlag(lowBit);
+	//rotate
+	a.setRegisterValue((value >> 1) | (oldCarryFlag << 7));
+
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	f.setZeroFlag(false);
+
+	cycleCPU(1);
+}
+
+void CPU::rotateAccumulatorRightCircular()
+{
+	//check lowest bit
+	u8 value = a.getRegisterValue();
+	u8 lowBit = value & (u8)1;
+
+	f.setCarryFlag(lowBit);
+
+	//rotate
+	a.setRegisterValue((value >> 1) | (lowBit << 7));
+
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	f.setZeroFlag(false);
+
+	cycleCPU(1);
+}
+
+void CPU::rotateRegisterLeft(ByteRegister& reg)
+{
+	u8 value = reg.getRegisterValue();
+	u8 shiftedBit = (value >> 7) & (u8)1;
+	u8 oldCarryFlag = (u8)f.getCarryFlag();
+	f.setCarryFlag(shiftedBit);
+	//rotate
+	reg.setRegisterValue((value << 1) | oldCarryFlag);
+
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	if (reg.getRegisterValue() == 0) {
+		f.setZeroFlag(true);
+	}
+	else {
+		f.setZeroFlag(false);
+	}
+	cycleCPU(2);
+}
+
+void CPU::rotateRegisterLeftCircular(ByteRegister& reg)
+{
+	//check highest bit
+	u8 value = reg.getRegisterValue();
+	u8 highBit = (value >> 7) & (u8)1;
+	
+	f.setCarryFlag(highBit);
+	
+	//rotate
+	reg.setRegisterValue((value << 1) | highBit);
+	
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	if (reg.getRegisterValue() == 0) {
+		f.setZeroFlag(true);
+	}
+	else {
+		f.setZeroFlag(false);
+	}
+
+	cycleCPU(2);
+}
+
+void CPU::rotateRegisterRight(ByteRegister& reg)
+{
+	u8 value = reg.getRegisterValue();
+	u8 lowBit = value & (u8)1;
+
+	u8 oldCarryFlag = (u8)f.getCarryFlag();
+	f.setCarryFlag(lowBit);
+	//rotate
+	reg.setRegisterValue((value >> 1) | (oldCarryFlag << 7));
+
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	if (reg.getRegisterValue() == 0) {
+		f.setZeroFlag(true);
+	}
+	else {
+		f.setZeroFlag(false);
+	}
+	cycleCPU(2);
+}
+
+void CPU::rotateRegisterRightCircular(ByteRegister& reg)
+{
+	//check lowest bit
+	u8 value = reg.getRegisterValue();
+	u8 lowBit = value & (u8)1;
+
+	f.setCarryFlag(lowBit);
+
+	//rotate
+	reg.setRegisterValue((value >> 1) | (lowBit << 7));
+
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	if (reg.getRegisterValue() == 0) {
+		f.setZeroFlag(true);
+	}
+	else {
+		f.setZeroFlag(false);
+	}
+
+	cycleCPU(2);
+}
+
+void CPU::rotateLeftIndirect()
+{
+	u8 value = readByteFromAddress(hlReg.getWord());
+	u8 highBit = (value >> 7) & (u8)1;
+	u8 oldCarryFlag = (u8)f.getCarryFlag();
+	f.setCarryFlag(highBit);
+	value = (value << 1) | oldCarryFlag;
+	writeByteAtAddress(hlReg.getWord(), value);
+
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	if (value == 0) {
+		f.setZeroFlag(true);
+	}
+	else {
+		f.setZeroFlag(false);
+	}
+
+	cycleCPU(4);
+}
+
+void CPU::rotateLeftCircularIndirect()
+{
+
+	//check highest bit
+	u8 value = readByteFromAddress(hlReg.getWord());
+	u8 highBit = (value >> 7) & (u8)1;
+
+	f.setCarryFlag(highBit);
+
+	//rotate
+	value = (value << 1) | highBit;
+	writeByteAtAddress(hlReg.getWord(), value);
+	
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	if (value == 0) {
+		f.setZeroFlag(true);
+	}
+	else {
+		f.setZeroFlag(false);
+	}
+
+	cycleCPU(4);
+}
+
+void CPU::rotateRightIndirect()
+{
+	u8 value = readByteFromAddress(hlReg.getWord());
+	u8 lowBit = value & (u8)1;
+	u8 oldCarryFlag = (u8)f.getCarryFlag();
+	f.setCarryFlag(lowBit);
+	//rotate
+	value = (value >> 1) | (oldCarryFlag << 7);
+	writeByteAtAddress(hlReg.getWord(), value);
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	if (value == 0) {
+		f.setZeroFlag(true);
+	}
+	else {
+		f.setZeroFlag(false);
+	}
+	cycleCPU(4);
+}
+
+void CPU::rotateRightCircularIndirect()
+{
+	//check lowest bit
+	u8 value = readByteFromAddress(hlReg.getWord());
+	u8 lowBit = value & (u8)1;
+
+	f.setCarryFlag(lowBit);
+
+	//rotate
+	value = (value >> 1) | (lowBit << 7);
+
+	writeByteAtAddress(hlReg.getWord(), value);
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	if (value == 0) {
+		f.setZeroFlag(true);
+	}
+	else {
+		f.setZeroFlag(false);
+	}
+	cycleCPU(4);
+
+}
+
+void CPU::shiftRegisterLeftArithmetic(ByteRegister& reg)
+{
+	u8 value = reg.getRegisterValue();
+	u8 highBit = (value >> 7) & (u8)1;
+	u8 lowBit = value & (u8)1;
+
+	f.setCarryFlag(highBit);
+
+	reg.setRegisterValue((value << 1) | lowBit);
+
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	if (reg.getRegisterValue() == 0) {
+		f.setZeroFlag(true);
+	}
+	else {
+		f.setZeroFlag(false);
+	}
+	cycleCPU(2);
+}
+
+void CPU::shiftLeftArithmeticIndirect()
+{
+	u8 value = readByteFromAddress(hlReg.getWord());
+	u8 highBit = (value >> 7) & (u8)1;
+	u8 lowBit = value & (u8)1;
+
+	f.setCarryFlag(highBit);
+	value = (value << 1) | lowBit;
+	writeByteAtAddress(hlReg.getWord(), value);
+	
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	if (value == 0) {
+		f.setZeroFlag(true);
+	}
+	else {
+		f.setZeroFlag(false);
+	}
+	cycleCPU(2);
+}
+
+void CPU::shiftRegisterRightArithmetic(ByteRegister& reg)
+{
+	u8 value = reg.getRegisterValue();
+	u8 lowBit = value & (u8)1;
+	u8 highBit = (value >> 7) & (u8)1 ;
+	f.setCarryFlag(lowBit);
+
+	reg.setRegisterValue((value >> 1)| (highBit << 7));
+
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	if (reg.getRegisterValue() == 0) {
+		f.setZeroFlag(true);
+	}
+	else {
+		f.setZeroFlag(false);
+	}
+	cycleCPU(2);
+}
+
+void CPU::shiftRightArithmeticIndirect()
+{
+	u8 value = readByteFromAddress(hlReg.getWord());
+	u8 lowBit = value & (u8)1;
+	u8 highBit = (value >> 7) & (u8)1;
+	f.setCarryFlag(lowBit);
+	value = (value >> 1) | (highBit << 7);
+	writeByteAtAddress(hlReg.getWord(),value);
+
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	if (value == 0) {
+		f.setZeroFlag(true);
+	}
+	else {
+		f.setZeroFlag(false);
+	}
+	cycleCPU(2);
+
+}
+
+void CPU::shiftRegisterRightLogical(ByteRegister& reg)
+{
+	u8 value = reg.getRegisterValue();
+	u8 shiftedBit = value & (u8)1;
+
+	f.setCarryFlag(shiftedBit);
+	
+	reg.setRegisterValue((value >> 1));
+
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	if (reg.getRegisterValue() == 0) {
+		f.setZeroFlag(true);
+	}
+	else {
+		f.setZeroFlag(false);
+	}
+	cycleCPU(2);
+}
+
+void CPU::shiftRightLogicalIndirect()
+{
+	u8 value = readByteFromAddress(hlReg.getWord());
+	u8 shiftedBit = value & (u8)1;
+
+	f.setCarryFlag(shiftedBit);
+	value = value >> 1;
+
+	writeByteAtAddress(hlReg.getWord(), value);
+
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	if (value == 0) {
+		f.setZeroFlag(true);
+	}
+	else {
+		f.setZeroFlag(false);
+	}
+	cycleCPU(2);
+}
+
+void CPU::swapRegisterNibbles(ByteRegister& reg)
+{
+	u8 value = reg.getRegisterValue();
+	value = ((value & 0xF0) >> 4) | (value << 4);
+	reg.setRegisterValue(value);
+	if (value == 0) {
+		f.setZeroFlag(true);
+	}
+	else {
+		f.setZeroFlag(false);
+	}
+	f.setCarryFlag(false);
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	cycleCPU(2);
+}
+
+void CPU::swapNibblesIndirect()
+{
+	u8 value = readByteFromAddress(hlReg.getWord());
+	value = ((value & 0xF0) >> 4) | (value << 4);
+	writeByteAtAddress(hlReg.getWord(), value);
+	if (value == 0) {
+		f.setZeroFlag(true);
+	}
+	else {
+		f.setZeroFlag(false);
+	}
+	f.setCarryFlag(false);
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(false);
+	cycleCPU(4);
+}
+
+void CPU::setRegisterBit(u8 bitNumber, ByteRegister& reg)
+{
+	assert(bitNumber < 8);
+
+
+	u8 value = reg.getRegisterValue();
+	reg.setRegisterValue(value | ((u8)1 << bitNumber));
+
+	cycleCPU(2);
+}
+
+void CPU::resetRegisterBit(u8 bitNumber, ByteRegister& reg)
+{
+	assert(bitNumber < 8);
+	u8 value = reg.getRegisterValue();
+
+	reg.setRegisterValue(value & ~((u8)1 << bitNumber));
+
+	cycleCPU(2);
+}
+
+void CPU::setBitIndirect(u8 bitNumber)
+{
+	assert(bitNumber < 8);
+	u8 value = readByteFromAddress(hlReg.getWord());
+	writeByteAtAddress(hlReg.getWord(), value | ((u8)1 << bitNumber));
+	cycleCPU(4);
+}
+
+void CPU::resetBitIndirect(u8 bitNumber)
+{
+	assert(bitNumber < 8);
+	u8 value = readByteFromAddress(hlReg.getWord());
+	writeByteAtAddress(hlReg.getWord(), value & ~((u8)1 << bitNumber));
+	cycleCPU(4);
+}
+
+void CPU::testRegisterBit(u8 bitNumber, ByteRegister& reg)
+{
+	assert(bitNumber < 8);
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(true);
+	f.setZeroFlag(!((reg.getRegisterValue() >> bitNumber) & (u8)1));
+	cycleCPU(2);
+}
+
+void CPU::testBitIndirect(u8 bitNumber)
+{
+	assert(bitNumber < 8);
+	f.setSubstractionFlag(false);
+	f.setHalfCarryFlag(true);
+	f.setZeroFlag(!((readByteFromAddress(hlReg.getWord()) >> bitNumber) & (u8)1));
+	cycleCPU(3);
+}
+
 void CPU::executeCbOpcode()
 {
+	u8 cbOpcode = readByteFromPC();
+	switch (cbOpcode)
+	{
+	case 0x00:
+		//RLC B
+		rotateRegisterLeftCircular(b);
+		break;
+	case 0x01:
+		//RLC C
+		rotateRegisterLeftCircular(c);
+		break;
+	case 0x02:
+		//RLC D
+		rotateRegisterLeftCircular(d);
+		break;
+	case 0x03:
+		//RLC E
+		rotateRegisterLeftCircular(e);
+		break;
+	case 0x04:
+		//RLC H
+		rotateRegisterLeftCircular(h);
+		break;
+	case 0x05:
+		//RLC L
+		rotateRegisterLeftCircular(l);
+		break;
+	case 0x06:
+		//RLC (HL)
+		rotateLeftCircularIndirect();
+		break;
+	case 0x07:
+		//RLC A
+		rotateRegisterLeftCircular(a);
+		break;
+	case 0x08:
+		//RRC B
+		rotateRegisterRightCircular(b);
+		break;
+	case 0x09:
+		//RRC C
+		rotateRegisterRightCircular(c);
+		break;
+	case 0x0A:
+		//RRC D
+		rotateRegisterRightCircular(d);
+		break;
+	case 0x0B:
+		//RRC E
+		rotateRegisterRightCircular(e);
+		break;
+	case 0x0C:
+		//RRC H
+		rotateRegisterRightCircular(h);
+		break;
+	case 0x0D:
+		//RRC L
+		rotateRegisterRightCircular(l);
+		break;
+	case 0x0E:
+		//RRC (HL)
+		rotateRightCircularIndirect();
+		break;
+	case 0x0F:
+		//RRC A
+		rotateRegisterRightCircular(a);
+		break;
+	case 0x10:
+		//RL B
+		rotateRegisterLeft(b);
+		break;
+	case 0x11:
+		//RL C
+		rotateRegisterLeft(c);
+		break;
+	case 0x12:
+		//RL D
+		rotateRegisterLeft(d);
+		break;
+	case 0x13:
+		//RL E
+		rotateRegisterLeft(e);
+		break;
+	case 0x14:
+		//RL H
+		rotateRegisterLeft(h);
+		break;
+	case 0x15:
+		//RL L
+		rotateRegisterLeft(l);
+		break;
+	case 0x16:
+		//RL (HL)
+		rotateLeftIndirect();
+		break;
+	case 0x17:
+		//RL A
+		rotateRegisterLeft(a);
+		break;
+	case 0x18:
+		//RR B
+		rotateRegisterRight(b);
+		break;
+	case 0x19:
+		//RR C
+		rotateRegisterRight(c);
+		break;
+	case 0x1A:
+		//RR D
+		rotateRegisterRight(d);
+		break;
+	case 0x1B:
+		//RR E
+		rotateRegisterRight(e);
+		break;
+	case 0x1C:
+		//RR H
+		rotateRegisterRight(h);
+		break;
+	case 0x1D:
+		//RR L
+		rotateRegisterRight(l);
+		break;
+	case 0x1E:
+		rotateRightIndirect();
+		break;
+	case 0x1F:
+		//RR A
+		rotateRegisterRight(a);
+		break;
+	case 0x20:
+		//SLA B
+		shiftRegisterLeftArithmetic(b);
+		break;
+	case 0x21:
+		//SLA C
+		shiftRegisterLeftArithmetic(c);
+		break;
+	case 0x22:
+		//SLA D
+		shiftRegisterLeftArithmetic(d);
+		break;
+	case 0x23:
+		//SLA E
+		shiftRegisterLeftArithmetic(e);
+		break;
+	case 0x24:
+		//SLA H
+		shiftRegisterLeftArithmetic(h);
+		break;
+	case 0x25:
+		//SLA L
+		shiftRegisterLeftArithmetic(l);
+		break;
+	case 0x26:
+		//SLA (HL)
+		shiftLeftArithmeticIndirect();
+		break;
+	case 0x27:
+		//SLA A
+		shiftRegisterLeftArithmetic(a);
+		break;
+	case 0x28:
+		//SRA B
+		shiftRegisterRightArithmetic(b);
+		break;
+	case 0x29:
+		//SRA C
+		shiftRegisterRightArithmetic(c);
+		break;
+	case 0x2A:
+		//SRA D
+		shiftRegisterRightArithmetic(d);
+		break;
+	case 0x2B:
+		//SRA E
+		shiftRegisterRightArithmetic(e);
+		break;
+	case 0x2C: //SRA H
+		shiftRegisterRightArithmetic(h);
+		break;
+	case 0x2D: //SRA L
+		shiftRegisterRightArithmetic(l);
+		break;
+	case 0x2E: //SRA (HL)
+		shiftRightArithmeticIndirect();
+		break;
+	case 0x2F: //SRA A
+		shiftRegisterRightArithmetic(a);
+		break;		
+	case 0x30: //SWAP B
+		swapRegisterNibbles(b);
+		break;
+	case 0x31: //SWAP C
+		swapRegisterNibbles(c);
+		break;
+	case 0x32: //SWAP D
+		swapRegisterNibbles(d);
+		break;
+	case 0x33: //SWAP E
+		swapRegisterNibbles(e);
+		break;
+	case 0x34: //SWAP H
+		swapRegisterNibbles(h);
+		break;
+	case 0x35: //SWAP L
+		swapRegisterNibbles(l);
+		break;
+	case 0x36: //SWAP (HL)
+		swapNibblesIndirect();
+		break;
+	case 0x37: //SWAP A
+		swapRegisterNibbles(a);
+		break;
+	case 0x38: //SRL B
+		shiftRegisterRightLogical(b);
+		break;
+	case 0x39: //SRL C
+		shiftRegisterRightLogical(c);
+		break;
+	case 0x3A: //SRL D
+		shiftRegisterRightLogical(d);
+		break;
+	case 0x3B: //SRL E
+		shiftRegisterRightLogical(e);
+		break;
+	case 0x3C: //SRL H
+		shiftRegisterRightLogical(h);
+		break;
+	case 0x3D: //SRL L
+		shiftRegisterRightLogical(l);
+		break;
+	case 0x3E: //SRL (HL)
+		shiftRightLogicalIndirect();
+		break;
+	case 0x3F: //SRL A
+		shiftRegisterRightLogical(a);
+		break;
+	case 0x40: //BIT 0, B
+		testRegisterBit(0, b);
+		break;
+	case 0x41: //BIT 0, C
+		testRegisterBit(0, c);
+		break;
+	case 0x42: //BIT 0, D
+		testRegisterBit(0, d);
+		break;
+	case 0x43: //BIT 0, E
+		testRegisterBit(0, e);
+		break;
+	case 0x44: //BIT 0, H
+		testRegisterBit(0, h);
+		break;
+	case 0x45: //BIT 0, L
+		testRegisterBit(0, l);
+		break;
+	case 0x46: //BIT 0, (HL)
+		testBitIndirect(0);
+		break;
+	case 0x47: //BIT 0, A
+		testRegisterBit(0, a);
+		break;
+	case 0x48: //BIT 1, B
+		testRegisterBit(1, b);
+		break;
+	case 0x49: //BIT 1, C
+		testRegisterBit(1, c);
+		break;
+	case 0x4A: //BIT 1, D
+		testRegisterBit(1, d);
+		break;
+	case 0x4B: //BIT 1, E
+		testRegisterBit(1, e);
+		break;
+	case 0x4C: //BIT 1, H
+		testRegisterBit(1, h);
+		break;
+	case 0x4D: //BIT 1, L
+		testRegisterBit(1, l);
+		break;
+	case 0x4E: //BIT 1, (HL)
+		testBitIndirect(1);
+		break;
+	case 0x4F: //BIT 1, A
+		testRegisterBit(1, a);
+		break;
+	case 0x50: //BIT 2, B
+		testRegisterBit(2, b);
+		break;
+	case 0x51: //BIT 2, C
+		testRegisterBit(2, c);
+		break;
+	case 0x52: //BIT 2, D
+		testRegisterBit(2, d);
+		break;
+	case 0x53: //BIT 2, E
+		testRegisterBit(2, e);
+		break;
+	case 0x54: //BIT 2, H
+		testRegisterBit(2, h);
+		break;
+	case 0x55: //BIT 2, L
+		testRegisterBit(2, l);
+		break;
+	case 0x56: //BIT 2, (HL)
+		testBitIndirect(2);
+		break;
+	case 0x57: //BIT 2, A
+		testRegisterBit(2, a);
+		break;
+	case 0x58: //BIT 3, B
+		testRegisterBit(3, b);
+		break;
+	case 0x59: //BIT 3, C
+		testRegisterBit(3, c);
+		break;
+	case 0x5A: //BIT 3, D
+		testRegisterBit(3, d);
+		break;
+	case 0x5B: //BIT 3, E
+		testRegisterBit(3, e);
+		break;
+	case 0x5C: //BIT 3, H
+		testRegisterBit(3, h);
+		break;
+	case 0x5D: //BIT 3, L
+		testRegisterBit(3, l);
+		break;
+	case 0x5E: //BIT 3, (HL)
+		testBitIndirect(3);
+		break;
+	case 0x5F: //BIT 3, A
+		testRegisterBit(3, a);
+		break;
+	case 0x60: //BIT 4, B
+		testRegisterBit(4, b);
+		break;
+	case 0x61: //BIT 4, C
+		testRegisterBit(4, c);
+		break;
+	case 0x62: //BIT 4, D
+		testRegisterBit(4, d);
+		break;
+	case 0x63: //BIT 4, E
+		testRegisterBit(4, e);
+		break; 
+	case 0x64: //BIT 4, H
+		testRegisterBit(4, h);
+		break;
+	case 0x65: //BIT 4, L
+		testRegisterBit(4, l);
+		break;
+	case 0x66: //BIT 4, (HL)
+		testBitIndirect(4);
+		break;
+	case 0x67: //BIT 4, A
+		testRegisterBit(4, a);
+		break;
+	case 0x68: //BIT 5, B
+		testRegisterBit(5, b);
+		break;
+	case 0x69: //BIT 5, C
+		testRegisterBit(5, c);
+		break;
+	case 0x6A: //BIT 5, d
+		testRegisterBit(5, d);
+		break;
+	case 0x6B: //BIT 5, E
+		testRegisterBit(5, e);
+		break;
+	case 0x6C: //BIT 5, H
+		testRegisterBit(5, h);
+		break;
+	case 0x6D: //BIT 5, L
+		testRegisterBit(5, l);
+		break;
+	case 0x6E:  //BIT 5, (HL)
+		testBitIndirect(5);
+		break;
+	case 0x6F: //BIT 5, A
+		testRegisterBit(5, a);
+		break;
+	case 0x70: //BIT 6, B
+		testRegisterBit(6, b);
+		break;
+	case 0x71: //BIT 6, C
+		testRegisterBit(6, c);
+		break;
+	case 0x72: //BIT 6, D
+		testRegisterBit(6, d);
+		break;
+	case 0x73: //BIT 6, E
+		testRegisterBit(6, e);
+		break;
+	case 0x74: //BIT 6, H
+		testRegisterBit(6, h);
+		break;
+	case 0x75: //BIT 6, L
+		testRegisterBit(6, l);
+		break;
+	case 0x76: //BIT 6, (HL)
+		testBitIndirect(6);
+		break;
+	case 0x77: //BIT 6, A
+		testRegisterBit(6, a);
+		break;
+	case 0x78: //BIT 7, B
+		testRegisterBit(7, b);
+		break;
+	case 0x79: //BIT 7, C
+		testRegisterBit(7, c);
+		break;
+	case 0x7A: //BIT 7, D
+		testRegisterBit(7, d);
+		break;
+	case 0x7B: //BIT 7, E
+		testRegisterBit(7, e);
+		break;
+	case 0x7C: //BIT 7, L
+		testRegisterBit(7, l);
+		break;
+	case 0x7D: //BIT 7, H
+		testRegisterBit(7, h);
+		break;
+	case 0x7E: //BIT 7, (HL)
+		testBitIndirect(7);
+		break;
+	case 0x7F: //BIT 7, A
+		testRegisterBit(7, a);
+		break;
+	case 0x80: //RES 0, B
+		resetRegisterBit(0, b);
+		break;
+	case 0x81: //RES 0, C
+		resetRegisterBit(0, c);
+		break;
+	case 0x82: //RES 0, D
+		resetRegisterBit(0, d);
+		break;
+	case 0x83: //RES 0, E
+		resetRegisterBit(0, e);
+		break;
+	case 0x84: //RES 0, H
+		resetRegisterBit(0, h);
+		break;
+	case 0x85: //RES 0, L
+		resetRegisterBit(0, l);
+		break;
+	case 0x86: //RES 0, (HL)
+		resetBitIndirect(0);
+		break;
+	case 0x87: //RES 0, A
+		resetRegisterBit(0, a);
+		break;
+	case 0x88: //RES 1, B
+		resetRegisterBit(1, b);
+		break;
+	case 0x89: //RES 1, C
+		resetRegisterBit(1, c);
+		break;
+	case 0x8A: //RES 1, D
+		resetRegisterBit(1, d);
+		break;
+	case 0x8B: //RES 1, E
+		resetRegisterBit(1, e);
+		break;
+	case 0x8C: //RES 1, h
+		resetRegisterBit(1, h);
+		break;
+	case 0x8D: //RES 1, L
+		resetRegisterBit(1, l);
+		break;
+	case 0x8E: //RES 1, (HL)
+		resetBitIndirect(1);
+		break;
+	case 0x8F: //RES 1, A
+		resetRegisterBit(1, a);
+		break;
+	case 0x90: //RES 2, B
+		resetRegisterBit(2, b);
+		break;
+	case 0x91: //RES 2, C
+		resetRegisterBit(2, c);
+		break;
+	case 0x92: //RES 2, D
+		resetRegisterBit(2, d);
+		break;
+	case 0x93: //RES 2, e
+		resetRegisterBit(2, e);
+		break;
+	case 0x94: //RES 2, H
+		resetRegisterBit(2, h);
+		break;
+	case 0x95: //RES 2, L
+		resetRegisterBit(2, l);
+		break;
+	case 0x96: //RES 2, (HL)
+		resetBitIndirect(2);
+		break;
+	case 0x97: //RES 2, A
+		resetRegisterBit(2, a);
+		break;
+	case 0x98: //RES 3, B
+		resetRegisterBit(3, b);
+		break;
+	case 0x99: //RES 3, C
+		resetRegisterBit(3, c);
+		break;
+	case 0x9A: //RES 3, D
+		resetRegisterBit(3, d);
+		break;
+	case 0x9B: //RES 3, E
+		resetRegisterBit(3, e);
+		break;
+	case 0x9C: //RES 3, H
+		resetRegisterBit(3, h);
+		break;
+	case 0x9D: //RES 3, L
+		resetRegisterBit(3, l);
+		break;
+	case 0x9E: //RES 3, (HL)
+		resetBitIndirect(3);
+		break;
+	case 0x9F: //RES 3, A
+		resetRegisterBit(3, a);
+		break;
+	case 0xA0: //RES 4, B
+		resetRegisterBit(4, b);
+		break;
+	case 0xA1: //RES 4, C
+		resetRegisterBit(4, c);
+		break;
+	case 0xA2: //RES 4, D
+		resetRegisterBit(4, d);
+		break;
+	case 0xA3: //RES 4, E
+		resetRegisterBit(4, e);
+		break;
+	case 0xA4: //RES 4, H
+		resetRegisterBit(4, h);
+		break;
+	case 0xA5: //RES 4, L
+		resetRegisterBit(4, l);
+		break;
+	case 0xA6: //RES 4, (HL)
+		resetBitIndirect(4);
+		break;
+	case 0xA7: //RES 4, A
+		resetRegisterBit(4, a);
+		break;
+	case 0xA8: //RES 5, B
+		resetRegisterBit(5, b);
+		break;
+	case 0xA9: //RES 5, C
+		resetRegisterBit(5, c);
+		break;
+	case 0xAA: //RES 5, D
+		resetRegisterBit(5, d);
+		break;
+	case 0xAB: //RES 5, E
+		resetRegisterBit(5, e);
+		break;
+	case 0xAC: //RES 5, H
+		resetRegisterBit(5, h);
+		break;
+	case 0xAD: //RES 5, L
+		resetRegisterBit(5, l);
+		break;
+	case 0xAE: //RES 5, (HL)
+		resetBitIndirect(5);
+		break;
+	case 0xAF: //RES 5, A
+		resetRegisterBit(5, a);
+		break;
+	case 0xB0: //RES 6, B
+		resetRegisterBit(6, b);
+		break;
+	case 0xB1: //RES 6, C
+		resetRegisterBit(6, c);
+		break;
+	case 0xB2: //RES 6, D
+		resetRegisterBit(6, d);
+		break;
+	case 0xB3: //RES 6, E
+		resetRegisterBit(6, e);
+		break;
+	case 0xB4: //RES 6, H
+		resetRegisterBit(6, h);
+		break;
+	case 0xB5: //RES 6, L
+		resetRegisterBit(6, l);
+		break;
+	case 0xB6: //RES 6, (HL)
+		resetBitIndirect(6);
+		break;
+	case 0xB7: //RES 6, A
+		resetRegisterBit(6, a);
+		break;
+	case 0xB8: //RES 7, B
+		resetRegisterBit(7, b);
+		break;
+	case 0xB9: //RES 7, C
+		resetRegisterBit(7, c);
+		break;
+	case 0xBA: //RES 7, D
+		resetRegisterBit(7, d);
+		break;
+	case 0xBB: //RES 7, E
+		resetRegisterBit(7, e);
+		break;
+	case 0xBC: //RES 7, H
+		resetRegisterBit(7, h);
+		break;
+	case 0xBD: //RES 7, L
+		resetRegisterBit(7, l);
+		break;
+	case 0xBE: //RES 7, (HL)
+		resetBitIndirect(7);
+		break;
+	case 0xBF: //RES 7, A
+		resetRegisterBit(7, a);
+		break;
+	case 0xC0: //SET 0, B
+		setRegisterBit(0, b);
+		break;
+	case 0xC1: //SET 0, C
+		setRegisterBit(0, c);
+		break;
+	case 0xC2: //SET 0, D
+		setRegisterBit(0, d);
+		break;
+	case 0xC3: //SET 0, E
+		setRegisterBit(0, e);
+		break;
+	case 0xC4: //SET 0, H
+		setRegisterBit(0, h);
+		break;
+	case 0xC5: //SET 0, L
+		setRegisterBit(0, l);
+		break;
+	case 0xC6: //SET 0, (HL)
+		setBitIndirect(0);
+		break;
+	case 0xC7: //SET 0, A
+		setRegisterBit(0, a);
+		break;
+	case 0xC8: //SET 1, B
+		setRegisterBit(1, b);
+		break;
+	case 0xC9: //SET 1, C
+		setRegisterBit(1, c);
+		break;
+	case 0xCA: //SET 1, D
+		setRegisterBit(1, d);
+		break;
+	case 0xCB: //SET 1, E
+		setRegisterBit(1, e);
+		break;
+	case 0xCC: //SET 1, H
+		setRegisterBit(1, h);
+		break;
+	case 0xCD: //SET 1, L
+		setRegisterBit(1, l);
+		break;
+	case 0xCE: //SET 1, (HL)
+		setBitIndirect(1);
+		break;
+	case 0xCF: //SET 1, A
+		setRegisterBit(1, a);
+		break;
+	case 0xD0: //SET 2, B
+		setRegisterBit(2, b);
+		break;
+	case 0xD1: //SET 2, C
+		setRegisterBit(2, c);
+		break;
+	case 0xD2: //SET 2, D
+		setRegisterBit(2, d);
+		break;
+	case 0xD3: //SET 2, E
+		setRegisterBit(2, e);
+		break;
+	case 0xD4: //SET 2, H
+		setRegisterBit(2, h);
+		break;
+	case 0xD5: //SET 2, L
+		setRegisterBit(2, l);
+		break;
+	case 0xD6: //SET 2, (HL)
+		setBitIndirect(2);
+		break;
+	case 0xD7: //SET 2, A
+		setRegisterBit(2, a);
+		break;
+	case 0xD8: //SET 3, B
+		setRegisterBit(3, b);
+		break;
+	case 0xD9: //SET 3, C
+		setRegisterBit(3, c);
+		break;
+	case 0xDA: //SET 3, D
+		setRegisterBit(3, d);
+		break;
+	case 0xDB: //SET 3, E
+		setRegisterBit(3, e);
+		break;
+	case 0xDC: //SET 3, H
+		setRegisterBit(3, h);
+		break;
+	case 0xDD: //SET 3, L
+		setRegisterBit(3, l);
+		break;
+	case 0xDE: //SET 3, (HL)
+		setBitIndirect(3);
+		break;
+	case 0xDF: //SET 3, A
+		setRegisterBit(3, a);
+		break;
+	case 0xE0: //SET 4, B
+		setRegisterBit(4, b);
+		break;
+	case 0xE1: //SET 4, C
+		setRegisterBit(4, c);
+		break;
+	case 0xE2: //SET 4, D
+		setRegisterBit(4, d);
+		break;
+	case 0xE3: //SET 4, E
+		setRegisterBit(4, e);
+		break;
+	case 0xE4: //SET 4, H
+		setRegisterBit(4, h);
+		break;
+	case 0xE5: //SET 4, L
+		setRegisterBit(4, l);
+		break;
+	case 0xE6: //SET 4, (HL)
+		setBitIndirect(4);
+		break;
+	case 0xE7: //SET 4, A
+		setRegisterBit(4, a);
+		break;
+	case 0xE8: //SET 5, B
+		setRegisterBit(5, b);
+		break;
+	case 0xE9: //SET 5, C
+		setRegisterBit(5, c);
+		break;
+	case 0xEA: //SET 5, D
+		setRegisterBit(5, d);
+		break;
+	case 0xEB: //SET 5, E
+		setRegisterBit(5, e);
+		break;
+	case 0xEC: //SET 5, H
+		setRegisterBit(5, h);
+		break;
+	case 0xED: //SET 5, L
+		setRegisterBit(5, l);
+		break;
+	case 0xEE: //SET 5, (HL)
+		setBitIndirect(5);
+		break;
+	case 0xEF: //SET 5, A
+		setRegisterBit(5, a);
+		break;
+	case 0xF0: //SET 6, B
+		setRegisterBit(6, b);
+		break;
+	case 0xF1: //SET 6, C
+		setRegisterBit(6, c);
+		break;
+	case 0xF2: //SET 6, D
+		setRegisterBit(6, d);
+		break;
+	case 0xF3: //SET 6, E
+		setRegisterBit(6, e);
+		break;
+	case 0xF4: //SET 6, H
+		setRegisterBit(6, h);
+		break;
+	case 0xF5: //SET 6, L
+		setRegisterBit(6, l);
+		break;
+	case 0xF6: //SET 6, (HL)
+		setBitIndirect(6);
+		break;
+	case 0xF7: //SET 6, A
+		setRegisterBit(6, a);
+		break;
+	case 0xF8: //SET 7, B
+		setRegisterBit(7, b);
+		break;
+	case 0xF9: //SET 7, C
+		setRegisterBit(7, c);
+		break;
+	case 0xFA: //SET 7, D
+		setRegisterBit(7, d);
+		break;
+	case 0xFB: //SET 7, E
+		setRegisterBit(7, e);
+		break;
+	case 0xFC: //SET 7, H
+		setRegisterBit(7, h);
+		break;
+	case 0xFD: //SET 7, L
+		setRegisterBit(7, l);
+		break;
+	case 0xFE: //SET 7, (HL)
+		setBitIndirect(7);
+		break;
+	case 0xFF: //SET 7, A
+		setRegisterBit(7, a);
+		break;
+	default:
+		break;
+	}
 }
 

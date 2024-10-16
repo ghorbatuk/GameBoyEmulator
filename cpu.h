@@ -161,5 +161,39 @@ private:
 	void DI();
 	void EI();
 
+	void rotateAccumulatorLeft();
+	void rotateAccumulatorLeftCircular();
+	void rotateAccumulatorRight();
+	void rotateAccumulatorRightCircular();
+
+	void rotateRegisterLeft(ByteRegister& reg);
+	void rotateRegisterLeftCircular(ByteRegister& reg);
+	void rotateRegisterRight(ByteRegister& reg);
+	void rotateRegisterRightCircular(ByteRegister& reg);
+
+	void rotateLeftIndirect();
+	void rotateLeftCircularIndirect();
+	void rotateRightIndirect();
+	void rotateRightCircularIndirect();
+
+	void shiftRegisterLeftArithmetic(ByteRegister& reg);
+	void shiftLeftArithmeticIndirect();
+	void shiftRegisterRightArithmetic(ByteRegister& reg);
+	void shiftRightArithmeticIndirect();
+
+	void shiftRegisterRightLogical(ByteRegister& reg);
+	void shiftRightLogicalIndirect();
+
+	void swapRegisterNibbles(ByteRegister& reg);
+	void swapNibblesIndirect();
+
+	void setRegisterBit(u8 bitNumber, ByteRegister& reg);
+	void resetRegisterBit(u8 bitNumber, ByteRegister& reg);
+	void setBitIndirect(u8 bitNumber);
+	void resetBitIndirect(u8 bitNumber);
+
+	void testRegisterBit(u8 bitNumber, ByteRegister& reg);
+	void testBitIndirect(u8 bitNumber);
+
 	void executeCbOpcode();
 };
