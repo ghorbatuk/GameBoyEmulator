@@ -14,6 +14,12 @@ void ByteRegister::setRegisterValue(u8 value)
 	this->value = value;
 }
 
+ByteRegister& ByteRegister::operator++()
+{
+	value++;
+	return *this;
+}
+
 
 ByteRegisterPair::ByteRegisterPair(ByteRegister& low, ByteRegister& high):
 	lowByte(low),

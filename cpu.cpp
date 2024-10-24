@@ -22,10 +22,29 @@ void CPU::init()
 {
 	cycles = 0;
 	PC.setWord(0x100);
-	SP.setWord(0x0);
+	SP.setWord(0xFFFE);
 	IR = 0;
 	IE = 0;
 	currentOpcode = 0;
+}
+
+void CPU::tick()
+{
+	checkInterrupts();
+	fetchOpcode();
+	executeCurrentOpcode();
+}
+
+void CPU::stackPush8(u8 value)
+{
+	--SP;
+	writeByteAtAddress(SP.getWord(), value);
+}
+
+void CPU::stackPush16(u16 value)
+{
+	stackPush8((u8)(value >> 8));
+	stackPush8((u8)(value & 0x00FF));
 }
 
 void CPU::fetchOpcode()
@@ -36,9 +55,12 @@ void CPU::fetchOpcode()
 
 void CPU::executeCurrentOpcode()
 {
-	printf("PC: %X", PC.getWord());
-	printf(" OPCODE: %X\n", currentOpcode);
-
+	printf("PC: %X  OPCODE: %X\n", PC.getWord() -1, currentOpcode);
+	//printf(" OPCODE: %X\n", currentOpcode);
+	if (PC.getWord() > 0x7FFF)
+	{
+		int i = 0;
+	}
 	switch(currentOpcode)
 	{
 	case 0x00:
@@ -1053,6 +1075,13 @@ u16 CPU::readWordFromSP()
 	return lo | (hi << 8);
 }
 
+u8 CPU::readByteFromSP()
+{
+	u8 value = gbEmu.addressBus.busRead(SP.getWord());
+	++SP;
+	return value;
+}
+
 u8 CPU::readByteFromPC()
 {
 	u8 value = gbEmu.addressBus.busRead(PC.getWord());
@@ -1068,6 +1097,58 @@ u8 CPU::readByteFromAddress(u16 address)
 void CPU::writeByteAtAddress(u16 address, u8 data)
 {
 	gbEmu.addressBus.busWrite(address, data);
+}
+
+void CPU::checkInterrupts()
+{
+	//get interrupts where bits are set in interruptFlag and interuptsEnabledFlag and IME is set
+	if (IME == 0) {
+		return;
+	}
+	u8 interrupts = interruptFlag.getRegisterValue() & interruptEnable.getRegisterValue();
+
+	//TODO: handle halt bug
+
+	
+	//push PC to stack
+	stackPush16(PC.getWord());
+
+	//Set PC to address of the interrupt. Service the interupts in order of the bits in IF and IE (0 to 4)
+
+	//VBLANK
+	if ((interrupts & 1) != 0)
+	{
+		handleInterrupt(0, interrupts::VBLANK);
+	}
+	//LCD STAT
+	if ((interrupts & 2) != 0)
+	{
+		handleInterrupt(1, interrupts::LCDC_STAT);
+	}
+	//TIMER
+	if ((interrupts & 4) != 0)
+	{
+		handleInterrupt(2, interrupts::TIMER);
+	}
+	//SERIAL
+	if ((interrupts & 8) != 0)
+	{
+		handleInterrupt(3, interrupts::SERIAL);
+	}
+	//GAMEPAD
+	if ((interrupts & 16) != 0)
+	{
+		handleInterrupt(4, interrupts::GAMEPAD);
+	}
+}
+
+void CPU::handleInterrupt(u8 interruptBit, u8 interruptAddress)
+{
+	IME = 0;
+	
+	interruptFlag.setRegisterValue(interruptFlag.getRegisterValue() & ~((u8)1 << interruptBit));
+	PC.setWord(interruptAddress);
+
 }
 
 
@@ -1245,11 +1326,6 @@ void CPU::LD_R16_DEC_A(ByteRegisterPair& reg)
 	gbEmu.addressBus.busWrite(reg.getWord(), a.getRegisterValue());
 	--reg;
 	cycleCPU(2);
-
-	//DEBUG
-	if (reg.getWord() == 57212)
-		printf("stop\n");
-	printf("HLREG Value: %d\n", reg.getWord());
 }
 
 void CPU::LD_R16_N8(ByteRegisterPair& reg)
@@ -1765,7 +1841,9 @@ void CPU::CALL()
 
 void CPU::RET()
 {
-	PC.setWord(readWordFromSP());
+	u16 value = readWordFromSP();
+	PC.setWord(value);
+	//PC.setWord(readWordFromSP());
 	cycleCPU(4);
 }
 

@@ -3,6 +3,7 @@
 
 emu::emu() :
     cpu(*this),
+    ppu(*this),
     addressBus(*this),
     cart()
 {
@@ -17,10 +18,9 @@ int emu::run(int agrc, char** argv)
         while (true)
         {
             //Emulate cycle
-            
-            //cpu fetches and executes an instruction
-            cpu.fetchOpcode();
-            cpu.executeCurrentOpcode();
+            cpu.tick();
+            ppu.tick();
+            //timer.tick()
         }
     }
     else {

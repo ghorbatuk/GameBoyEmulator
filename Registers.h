@@ -9,6 +9,7 @@ public:
 	auto operator=(const ByteRegister&)->ByteRegister & = delete;
 	u8 getRegisterValue() const;
 	void setRegisterValue(u8 value);
+	virtual ByteRegister& operator++();
 protected:
 	u8 value;
 };
@@ -47,8 +48,6 @@ public:
 private:
 	ByteRegister& lowByte;
 	ByteRegister& highByte;
-	//u16 registerData;
-
 };
 
 class FlagsRegister : public ByteRegister{

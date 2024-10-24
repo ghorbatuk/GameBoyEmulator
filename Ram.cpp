@@ -6,7 +6,6 @@ Ram::Ram()
 {
     memset(workRam, 0, sizeof(workRam));
     memset(highRam, 0, sizeof(highRam));
-    memset(vRam, 0, sizeof(vRam));
 }
 
 u8 Ram::readWorkRam(u16 address)
@@ -25,12 +24,6 @@ u8 Ram::readHighRam(u16 address)
     return highRam[address - 0xFF80];
 }
 
-u8 Ram::readVRam(u16 address)
-{
-    assert(address - 0x8000 > -1 && address - 0x8000 < sizeof(vRam));
-    return vRam[address - 0x8000];
-}
-
 void Ram::writeWorkRam(u16 address, u8 value)
 {
     assert(address - 0xC000 > -1 && address - 0xC000 < sizeof(workRam));
@@ -47,8 +40,3 @@ void Ram::writeHighRam(u16 address, u8 value)
     highRam[address - 0xFF80] = value;
 }
 
-void Ram::writeVRam(u16 address, u8 value)
-{
-    assert(address - 0x8000 > -1 && address - 0x8000 < sizeof(vRam));
-    vRam[address - 0x8000] = value;
-}

@@ -5,19 +5,26 @@
 
 
 
+namespace interrupts {
+	const u16 VBLANK = 0x40;
+	const u16 LCDC_STAT = 0x48;
+	const u16 TIMER = 0x50;
+	const u16 SERIAL = 0x58;
+	const u16 GAMEPAD = 0x60;
+}
 
 class emu;
 class CPU
 {
 public:
+	ByteRegister interruptFlag;
+	ByteRegister interruptEnable;
+
 	CPU(emu& gbEmu);
 	bool isHalted();
 	void init();
-	void fetchOpcode();
-	//unsigned short fetchInstructionData(unsigned short address);
-	void executeCurrentOpcode();
-
-	void cycleCPU(int numCycles);
+	void tick();
+	
 private:
 	enum RSTCodes {
 		RST1 = 0x00,
@@ -45,11 +52,21 @@ private:
 	bool IME;
 	u8 currentOpcode;
 
+	void stackPush8(u8 value);
+	void stackPush16(u16 value);
+	void fetchOpcode();
+	void executeCurrentOpcode();
+
+	void cycleCPU(int numCycles);
+
 	u16 readWordFromPC();
 	u16 readWordFromSP();
 	u8 readByteFromPC();
+	u8 readByteFromSP();
 	u8 readByteFromAddress(u16 address);
 	void writeByteAtAddress(u16 address, u8 data);
+	void checkInterrupts();
+	void handleInterrupt(u8 interruptBit, u8 interruptAddress );
 
 	void opcodeNOP();
 	void opcodeJP_A16();

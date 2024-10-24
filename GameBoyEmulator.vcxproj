@@ -133,7 +133,10 @@
     <ClCompile Include="cpu.cpp" />
     <ClCompile Include="emu.cpp" />
     <ClCompile Include="GameBoyEmulator.cpp" />
-    <ClCompile Include="instruction.cpp" />
+    <ClCompile Include="Gamepad.cpp" />
+    <ClCompile Include="Interrupt.cpp" />
+    <ClCompile Include="IORegisters.cpp" />
+    <ClCompile Include="Lcd.cpp" />
     <ClCompile Include="ppu.cpp" />
     <ClCompile Include="Ram.cpp" />
     <ClCompile Include="Registers.cpp" />
@@ -146,7 +149,10 @@
     <ClInclude Include="Common.h" />
     <ClInclude Include="cpu.h" />
     <ClInclude Include="emu.h" />
-    <ClInclude Include="instruction.h" />
+    <ClInclude Include="Gamepad.h" />
+    <ClInclude Include="Interrupt.h" />
+    <ClInclude Include="IORegisters.h" />
+    <ClInclude Include="Lcd.h" />
     <ClInclude Include="ppu.h" />
     <ClInclude Include="Ram.h" />
     <ClInclude Include="Registers.h" />

@@ -7,12 +7,6 @@
 #include "timer.h"
 #include "Ram.h"
 
-/*unsigned char workMemory[8192] = {0};
-unsigned char videoMemory[8192] = { 0 };
-unsigned char display[160 * 144] = { 0 };
-*/
-
-
 class emu
 {
 public:
@@ -24,6 +18,9 @@ private:
 	Cartridge cart;
 	CPU cpu;
 	friend class CPU;
+
+	PPU ppu;
+	friend class PPU;
 
 	AddressBus addressBus;
 	friend class AddressBus;
